@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: project_gamify_db
+      POSTGRES_USER: gamify_user
+      POSTGRES_PASSWORD: gamify_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gamify_user -d project_gamify_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .  # Contexte de construction est le dossier racine
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app  # Monte le dossier courant dans /app dans le conteneur
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgresql://gamify_user:gamify_password@db:5432/project_gamify_db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

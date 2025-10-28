@@ -1,1 +1,3 @@
 # project-gamify
+
+Une application qui combine tracking d'activités (sport, loisirs, objectifs personnels) avec des mécaniques de jeu de rôle. Les utilisateurs créent un personnage avec une classe (mage, guerrier, voleur, etc.), gagnent de l'XP en accomplissant des activités réelles, font monter leur personnage en niveau, et progressent dans des aventures textuelles interactives type JDR. Le système récompense les efforts physiques et personnels avec des équipements, compétences et progressions narratives.
