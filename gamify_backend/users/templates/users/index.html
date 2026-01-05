@@ -1,0 +1,30 @@
+{% extends 'users/base/base.html' %}
+
+{% load static %}
+
+{% block title %} 
+All Users 
+{% endblock %}
+
+{% block site_css %} 
+    <link rel="stylesheet" href="{% static 'users/styles/all-users.css' %}"> 
+{% endblock %}
+
+{% block main_heading %}
+All registered users
+{% endblock %}
+
+{% block header_content %}
+<p>Check other users' progression</p>
+{% endblock %}
+
+{% block body %}
+<section>
+    <h2>Last users</h2>
+    <ol>
+        {% for user_item in users %}
+            {% include 'users/includes/user-item.html' with user=user_item.user name=user_item.name %}
+        {% endfor %}
+    </ol>
+</section>
+{% endblock %}

@@ -1,0 +1,16 @@
+<li class="meetup-item">
+    <article>
+        <div class="meetup-summary">
+        <div class="meetup-image">
+            <img src="" alt="">
+        </div>
+        <div class="meetup-details">
+            <h3>{{ user }}</h3>
+            <address>{{ name }}</address>
+        </div>
+        </div>
+        <div class="meetup-actions">
+        <a href="{% url 'user-detail' user_item.slug  %}" class="btn">More Details</a>
+        </div>
+    </article>
+</li>
