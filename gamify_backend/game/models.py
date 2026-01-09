@@ -2,7 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 
-from users.models import CharacterClass, Character
+# from users.models import CharacterClass, Character
 
 class Skill(models.Model):
     """
@@ -18,7 +18,7 @@ class Skill(models.Model):
     ]
     name = models.CharField(max_length=100, unique=True, verbose_name="Skill name")
     description = models.TextField(verbose_name="Skill description")
-    character_class = models.ForeignKey(CharacterClass, on_delete=models.CASCADE, related_name="skills", verbose_name="Required class")
+    character_class = models.ForeignKey('users.CharacterClass', on_delete=models.CASCADE, related_name="skills", verbose_name="Required class")
     skill_type = models.CharField(max_length=10, choices=SKILL_TYPES, default='combat', verbose_name="Skill type")
     cooldown = models.IntegerField(default=0, validators=[MinValueValidator(0)], blank=True, null=True, verbose_name="Skill cooldown (in game turn)")
     is_active = models.BooleanField(default=False, verbose_name="active skills (contraty to a passive)")
@@ -35,7 +35,10 @@ class Skill(models.Model):
         ordering = ['character_class', 'unlock_at_level']
 
     def is_usable(self, character):
-        return self.is_active and character.level >= self.unlock_at_level
+        return (self.is_active and
+            not self.is_npc_skill and
+            character.level >= self.unlock_at_level and
+            self.character_class == character.character_class)
 
     def __str__(self):
         return f"{self.name} ({self.character_class.name}, Lvl.{self.unlock_at_level})"
@@ -56,7 +59,7 @@ class Skill(models.Model):
         super().save(*args, **kwargs)
 
 class CharacterSkill(models.Model):
-    character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name="acquired_skills", verbose_name="Associated character" )
+    character = models.ForeignKey('users.Character', on_delete=models.CASCADE, related_name="acquired_skills", verbose_name="Associated character" )
     skill = models.ForeignKey(Skill, on_delete=models.CASCADE, related_name="characters", verbose_name="Skill")
     acquired_at = models.DateTimeField(auto_now_add=True, verbose_name="Acquisition date")
     acquired_level = models.IntegerField(default=0, verbose_name="Level at acquisition time")
@@ -103,7 +106,7 @@ class Equipment(models.Model):
     tertiary_stat_type = models.CharField(max_length=50, blank=True, null=True, verbose_name="Third bonus type (xp bonus, narrative perk, combat bonus)")
     tertiary_stat_value = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True, verbose_name="Third bonus value")
     required_level = models.IntegerField(default=1, validators=[MinValueValidator(1)], verbose_name="Level required wear the equipment")
-    required_class = models.ForeignKey(CharacterClass, on_delete=models.CASCADE, blank=True, null=True, related_name="equipments", verbose_name="Required class (NULL = all classes)")
+    required_class = models.ForeignKey('users.CharacterClass', on_delete=models.CASCADE, blank=True, null=True, related_name="equipments", verbose_name="Required class (NULL = all classes)")
     icon = models.CharField(max_length=50, blank=True, null=True, verbose_name="Icon name")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creation date")
 
@@ -130,7 +133,7 @@ class Equipment(models.Model):
     # Amulette du Sage (relic, legendary, Tous, +15% XP, +5% Stat principale)
 
 class CharacterEquipment(models.Model):
-    character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name="owned_equipments", verbose_name="Character")
+    character = models.ForeignKey('users.Character', on_delete=models.CASCADE, related_name="owned_equipments", verbose_name="Character")
     equipment = models.ForeignKey(Equipment, on_delete=models.CASCADE, related_name="characters", verbose_name="Equipment")
     is_equipped = models.BooleanField(default=False, verbose_name="Is currently equipped")
     acquired_at = models.DateTimeField(auto_now_add=True, verbose_name="Acquisition date")

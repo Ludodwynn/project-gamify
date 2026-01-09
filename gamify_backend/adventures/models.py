@@ -1,11 +1,12 @@
 from datetime import timezone
 from django.db import models
+from django.utils.text import slugify
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from django.db.models import UniqueConstraint, Q
 
-from users.models import CharacterClass, Character
-from game.models import Enemy, Skill, Equipment, CharacterSkill
+# from users.models import CharacterClass, Character
+# from game.models import Enemy, Skill, Equipment, CharacterSkill
 
 class Reward(models.Model):
     REWARD_TYPES = [
@@ -17,8 +18,8 @@ class Reward(models.Model):
 
     type = models.CharField(max_length=10, choices=REWARD_TYPES, verbose_name="Reward type")
     value = models.IntegerField(verbose_name="Value (XP amount, item ID, etc.)")
-    item = models.ForeignKey(Equipment, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Item reward (if type=item)")
-    skill = models.ForeignKey(Skill, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Skill reward (if type=skill)")
+    item = models.ForeignKey('game.Equipment', on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Item reward (if type=item)")
+    skill = models.ForeignKey('game.Skill', on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Skill reward (if type=skill)")
     description = models.CharField(max_length=200, verbose_name="Reward description")
 
     def clean(self):
@@ -33,6 +34,7 @@ class Reward(models.Model):
 
 class Adventure(models.Model):
     title = models.CharField(max_length=200, verbose_name="Adventure title")
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
     description = models.TextField(verbose_name="Adventure synopsis")
     min_level = models.IntegerField(default=1, validators=[MinValueValidator(1)], verbose_name="Level required")
     base_xp_reward = models.IntegerField(validators=[MinValueValidator(0)], verbose_name="Experience rewarded for completion")
@@ -49,6 +51,8 @@ class Adventure(models.Model):
 
     def save(self, *args, **kwargs):
         """Sauvegarde avec validation"""
+        if not self.slug:
+            self.slug = slugify(self.title)
         self.full_clean()
         super().save(*args, **kwargs)
     
@@ -75,7 +79,7 @@ class Scene(models.Model):
     is_starting_scene = models.BooleanField(default=False, verbose_name="Is opening scene")
     is_ending_scene = models.BooleanField(default=False, verbose_name="Is ending scene")
     is_fight_scene = models.BooleanField(default=False, verbose_name="Is combat scene")
-    enemy = models.ForeignKey(Enemy, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Enemy (if fight scene)")
+    enemy = models.ForeignKey('game.Enemy', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Enemy (if fight scene)")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creation date")
 
     class Meta:
@@ -138,14 +142,20 @@ class Scene(models.Model):
     
 
 class SceneChoice(models.Model):
+    EFFECT_TYPES = [
+        ('lose_hp', 'HP loss'),
+        ('lose_mp', 'MP loss'),
+    ]
     scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name="choices", verbose_name="Parent scene")
     text = models.CharField(max_length=500, verbose_name="Choice text")
     order = models.IntegerField(validators=[MinValueValidator(0)], verbose_name="Display order")
     next_scene = models.ForeignKey(Scene, blank=True, null=True, on_delete=models.SET_NULL, related_name="choices_leading_here", verbose_name="Next scene to play")
-    required_class = models.ForeignKey(CharacterClass, blank=True, null=True, on_delete=models.SET_NULL, related_name="required_class_for_choices", verbose_name="Required class for choice")
-    required_skill = models.ForeignKey(Skill, blank=True, null=True, on_delete=models.SET_NULL, related_name="required_skill_for_choices", verbose_name="Required skill")
-    required_equipment = models.ForeignKey(Equipment, blank=True, null=True, on_delete=models.SET_NULL, related_name="required_equipment_for_choices", verbose_name="Equipment required")
+    required_class = models.ForeignKey('users.CharacterClass', blank=True, null=True, on_delete=models.SET_NULL, related_name="required_class_for_choices", verbose_name="Required class for choice")
+    required_skill = models.ForeignKey('game.Skill', blank=True, null=True, on_delete=models.SET_NULL, related_name="required_skill_for_choices", verbose_name="Required skill")
+    required_equipment = models.ForeignKey('game.Equipment', blank=True, null=True, on_delete=models.SET_NULL, related_name="required_equipment_for_choices", verbose_name="Equipment required")
     is_available = models.BooleanField(default=True, verbose_name="Is the choice available")
+    effect_type = models.CharField(max_length=20, choices=EFFECT_TYPES, blank=True, null=True)
+    effect_value = models.IntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creation date")
 
     class Meta:
@@ -200,6 +210,13 @@ class SceneChoice(models.Model):
             if not has_equipment:
                 return f"Require equipment : {self.required_equipment.name}"
         return ""
+    
+    def apply_effect(self, character):
+        if self.effect_type == 'lose_hp':
+            character.hp -= self.effect_value
+        if self.effect_type == 'los_mp':
+            character.mp -= self.effect_value
+        character.save()
         
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -220,7 +237,7 @@ class SceneChoice(models.Model):
     # - Si `required_equipment` défini : visible seulement si équipement possédé
 
 class AdventureProgress(models.Model):
-    character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name="character_progressions", verbose_name="Character")
+    character = models.ForeignKey('users.Character', on_delete=models.CASCADE, related_name="character_progressions", verbose_name="Character")
     adventure = models.ForeignKey(Adventure, on_delete=models.CASCADE, related_name="progressions", verbose_name="Adventure")
     current_scene = models.ForeignKey(Scene, on_delete=models.CASCADE, related_name="progressed_scenes", verbose_name="Current scene")
     completed = models.BooleanField(default=False, verbose_name="Completed adventure")

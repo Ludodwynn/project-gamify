@@ -17,6 +17,12 @@ def resolve_fight(character, enemy):
         'rewards': [],
     }
 
+    if not character or not enemy:
+        raise ValueError("Character or enemy missing.")
+    
+    # if character.hp <= 0 or enemy.hp <= 0:
+    #     raise ValueError("The character or the enemy is already defeated.")
+
     while result['character_hp'] > 0 and result['enemy_hp'] > 0:
         result['turns'] += 1
 

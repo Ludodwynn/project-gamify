@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.core.validators import MaxValueValidator
 
-from users.models import Character
+# from users.models import Character
 
 class ActivityType(models.Model):
     name = models.CharField(max_length=50, unique=True, verbose_name="Type name")
@@ -38,7 +38,7 @@ class Activity(models.Model):
     """
     Activities registered by the Users
     """
-    character = models.ForeignKey(Character, on_delete=models.CASCADE, related_name="activities", verbose_name="Associated character")
+    character = models.ForeignKey('users.Character', on_delete=models.CASCADE, related_name="activities", verbose_name="Associated character")
     activity_type = models.ForeignKey(ActivityType, on_delete=models.PROTECT, verbose_name="Activity type", related_name="activity_logs")
     duration_minutes = models.IntegerField(default=1, validators=[MinValueValidator(1)], verbose_name="Duration in minutes")
     calories = models.IntegerField(blank=True, null=True, validators=[MinValueValidator(1)],  verbose_name="Calories burned")

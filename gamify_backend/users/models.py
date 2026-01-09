@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import slugify
 from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -20,6 +21,21 @@ class User(AbstractUser):
     # - is_superuser
     # - date_joined
     # - last_login
+    groups = models.ManyToManyField(
+        'auth.Group',
+        related_name='custom_user_set',  # Évite les conflits avec le modèle User par défaut
+        blank=True,
+        verbose_name='groups',
+        help_text='The groups this user belongs to.',
+    )
+    user_permissions = models.ManyToManyField(
+        'auth.Permission',
+        related_name='custom_user_permission_set',  # Évite les conflits avec le modèle User par défaut
+        blank=True,
+        verbose_name='user permissions',
+        help_text='Specific permissions for this user.',
+    )
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creation date")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Last update")
 
@@ -42,6 +58,8 @@ class User(AbstractUser):
         ordering = ['-created_at']
 
     def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.username)
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -83,6 +101,7 @@ class CharacterClass(models.Model):
 class Character(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="User related to character", related_name='characters')
     name = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     race = models.ForeignKey(Race, on_delete=models.PROTECT, verbose_name="Chosen race", related_name='race_characters')
     character_class = models.ForeignKey(CharacterClass, on_delete=models.PROTECT, verbose_name="Chosen class", related_name='class_characters')
     level = models.IntegerField(default=1, validators=[MinValueValidator(1)], verbose_name="Current level")
@@ -146,11 +165,34 @@ class Character(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
 
-        self.total_xp += self.current_xp
+        if self.pk:
+            old_char = Character.objects.get(pk=self.pk)
+            self.total_xp = old_char.total_xp + (self.current_xp - old_char.current_xp)
+        else:
+            self.total_xp = self.current_xp
 
+        
         while self.current_xp >= self.xp_for_next_level:
             self.current_xp -= self.xp_for_next_level
             self.level += 1
 
+        if self.pk:  # Si c'est une mise à jour
+            old_char = Character.objects.get(pk=self.pk)
+            if old_char.name != self.name:  # Si le nom a changé
+                self.slug = self._generate_unique_slug()
+        else:  # Nouvelle création
+            if not self.slug:
+                self.slug = self._generate_unique_slug()
+
         super().save(*args, **kwargs)
+
+    def _generate_unique_slug(self):
+        """Make a unique slug based on the character's name."""
+        base_slug = slugify(self.name)
+        slug = base_slug
+        counter = 1
+        while Character.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        return slug
 

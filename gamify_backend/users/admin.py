@@ -5,7 +5,7 @@ from django.utils.html import format_html
 from .models import User, Race, CharacterClass, Character
 
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'email', 'date_joined', 'is_active', 'is_staff', 'character_count', 'characters_link')
+    list_display = ('username', 'email', 'date_joined', 'is_active', 'is_staff', 'character_count', 'characters_link', 'slug')
     list_filter = ('is_active', 'is_staff', 'date_joined')
     search_fields = ('username', 'email')
 
@@ -33,7 +33,7 @@ class CustomUserAdmin(admin.ModelAdmin):
 
 @admin.register(Character)
 class CharacterAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'race', 'character_class', 'level', 'is_active')
+    list_display = ('name', 'user', 'race', 'character_class', 'level', 'is_active', 'slug')
     list_filter = ('race', 'character_class', 'is_active')
     search_fields = ('name', 'user__username')
 

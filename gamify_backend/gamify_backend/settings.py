@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'game',
     'tracking',
     'adventures',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
