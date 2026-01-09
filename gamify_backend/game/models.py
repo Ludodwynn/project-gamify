@@ -40,9 +40,6 @@ class Skill(models.Model):
             character.level >= self.unlock_at_level and
             self.character_class == character.character_class)
 
-    def __str__(self):
-        return f"{self.name} ({self.character_class.name}, Lvl.{self.unlock_at_level})"
-
     # **Exemples :**
     # ```
     # Guerrier - Coup Puissant (Active, X DMG, Unlock Lvl 3)
