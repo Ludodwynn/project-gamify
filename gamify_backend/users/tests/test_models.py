@@ -29,7 +29,6 @@ class CharacterXPTestCase(TestCase):
         )
 
 
-
     def test_xp_gain_and_level_up(self):
         """Test XP gains and leveling up."""
         # Create an activity for 600 XP (120 minutes * 5 XP/minute)

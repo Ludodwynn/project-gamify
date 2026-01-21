@@ -12,5 +12,8 @@ python manage.py migrate
 Si tu ne passes pas par Docker pour le développement, lance le serveur Django :
 python manage.py runserver
 
+tests :
+python manage.py test nomDuModule.tests.nomDuFichierTest
+
 accès API
 http://localhost:8000/api/   + endpoints

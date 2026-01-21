@@ -1,5 +1,8 @@
 from rest_framework import serializers
+
+from users.models import CharacterClass
 from .models import Enemy, Skill, CharacterSkill, Equipment, CharacterEquipment
+from .permissions import IsAdminOrReadOnly
 
 class SkillSerializer(serializers.ModelSerializer):
     character_class = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -7,7 +10,15 @@ class SkillSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Skill
-        fields = ['id', 'name', 'description', 'character_class', 'skill_type', 'cooldown', 'is_active', 'is_npc_skill', 'unlock_at_level', 'bonus_type', 'bonus_value', 'icon', 'created_at']
+        fields = ['id', 'name', 'description', 'character_class', 'skill_type', 'cooldown', 'is_active', 'is_npc_skill', 'unlock_at_level', 'bonus_type', 'bonus_value', 'icon', 'created_at', 'is_usable']
+
+    def create(self, validated_data):
+        character_class = self.context.get('character_class')
+        if not character_class:
+            raise serializers.ValidationError("Character class is required.")
+
+        skill = Skill.objects.create(character_class=character_class, **validated_data)
+        return skill
 
     def get_is_usable(self, obj):
         character = self.context.get('character')
@@ -26,7 +37,7 @@ class CharacterSkillSerializer(serializers.ModelSerializer):
 
 
 class EquipmentSerializer(serializers.ModelSerializer):
-    character_class = serializers.PrimaryKeyRelatedField(read_only=True)
+    required_class = serializers.PrimaryKeyRelatedField(queryset=CharacterClass.objects.all(), required=False, allow_null=True)
     is_equippable = serializers.SerializerMethodField()
 
     class Meta:
@@ -56,7 +67,7 @@ class EnemySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Enemy
-        fields = ['id', 'name', 'description', 'hp', 'min_damage', 'max_damage', 'skills', 'is_boss', 'reward', 'xp_reward', 'icon']
+        fields = ['id', 'name', 'description', 'hp', 'min_damage', 'max_damage', 'skills', 'is_boss', 'reward', 'xp_reward', 'icon', 'damage_range']
 
     def get_damage_range(self, obj):
         return f"Damages range from {obj.min_damage} to {obj.max_damage}"

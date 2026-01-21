@@ -197,19 +197,19 @@ class SceneChoice(models.Model):
                 return False
         return True
 
-    def unavailable_reason(self, character):
-        """Return the reason as to why a choice is not available."""
-        if self.required_class and self.required_class != character.character_class:
-            return f"Require class : {self.required_class.name}"
-        if self.required_skill:
-            has_skill = character.acquired_skills.filter(skill=self.required_skill).exists()
-            if not has_skill:
-                return f"Require skill : {self.required_skill.name}"
-        if self.required_equipment:
-            has_equipment = character.owned_equipments.filter(equipment=self.required_equipment).exists()
-            if not has_equipment:
-                return f"Require equipment : {self.required_equipment.name}"
-        return ""
+    # def unavailable_reason(self, character):
+    #     """Return the reason as to why a choice is not available."""
+    #     if self.required_class and self.required_class != character.character_class:
+    #         return f"Require class : {self.required_class.name}"
+    #     if self.required_skill:
+    #         has_skill = character.acquired_skills.filter(skill=self.required_skill).exists()
+    #         if not has_skill:
+    #             return f"Require skill : {self.required_skill.name}"
+    #     if self.required_equipment:
+    #         has_equipment = character.owned_equipments.filter(equipment=self.required_equipment).exists()
+    #         if not has_equipment:
+    #             return f"Require equipment : {self.required_equipment.name}"
+    #     return ""
     
     def apply_effect(self, character):
         if self.effect_type == 'lose_hp':
@@ -267,10 +267,10 @@ class AdventureProgress(models.Model):
 
     def clean(self):
         super().clean()
+        if self.current_scene_id is None:
+            raise ValidationError({'current_scene': 'This field cannot be null.'})
         if self.current_scene and self.current_scene.adventure != self.adventure:
-            raise ValidationError({
-                'current_scene': "Current scene must belong to the same adventure."
-            })
+            raise ValidationError({'current_scene': 'The current scene does not belong to the adventure.'})
 
     # **Contraintes :**
     # - Paire `(character, adventure)` unique si `completed=False`

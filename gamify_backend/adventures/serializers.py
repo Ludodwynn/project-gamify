@@ -44,10 +44,11 @@ class AdventureSerializer(serializers.ModelSerializer):
         model = Adventure
         fields = ['id', 'title', 'slug', 'description', 'min_level', 'base_xp_reward', 'difficulty', 'estimated_duration', 'is_published', 'rewards']
 
-    def get_fields(self):
-        fields = super().get_fields()
-        if not self.context['request'].user.is_staff:
-            fields.pop('is_published') 
+    def get_fields(self, *args, **kwargs):
+        fields = super().get_fields(*args, **kwargs)
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and not request.user.is_staff:
+            fields.pop('is_published', None)
         return fields
     
 
@@ -67,7 +68,7 @@ class SceneSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Scene
-        fields = ['id', 'adventure', 'slug', 'scene_order', 'title', 'content', 'is_starting_scene', 'is_ending_scene', 'is_fight_scene', 'enemy', 'next_scene']
+        fields = ['id', 'adventure', 'scene_order', 'title', 'content', 'is_starting_scene', 'is_ending_scene', 'is_fight_scene', 'enemy', 'next_scene', 'next_scene', 'previous_scene']
 
 
 class SceneChoiceSerializer(serializers.ModelSerializer):
@@ -77,13 +78,29 @@ class SceneChoiceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SceneChoice
-        fields = ['scene', 'text', 'order', 'next_scene', 'required_class', 'required_skill', 'required_equipment', 'is_available', 'created_at']
+        fields = ['scene', 'text', 'order', 'next_scene', 'required_class', 'required_skill', 'required_equipment', 'is_available', 'created_at', 'unavailable_reason']
 
     def get_is_available(self, obj):
         character = self.context.get('character')
         if character:
             return obj.is_available_for_character(character)
         return False
+    
+    def get_unavailable_reason(self, obj):
+        character = self.context.get('character')
+        if not character:
+            return "Character required"
+        if obj.required_class and obj.required_class != character.character_class:
+            return f"Require class: {obj.required_class.name}"
+        if obj.required_skill:
+            has_skill = character.acquired_skills.filter(skill=obj.required_skill).exists()
+            if not has_skill:
+                return f"Require skill: {obj.required_skill.name}"
+        if obj.required_equipment:
+            has_equipment = character.owned_equipments.filter(equipment=obj.required_equipment).exists()
+            if not has_equipment:
+                return f"Require equipment: {obj.required_equipment.name}"
+        return ""
 
 class AdventureProgressSerializer(serializers.ModelSerializer):
     character = CharacterSerializer(read_only=True)
@@ -106,5 +123,5 @@ class AdventureProgressSerializer(serializers.ModelSerializer):
         if obj.adventure and obj.adventure.scenes.count() > 0:
             current_scene_order = obj.current_scene.scene_order if obj.current_scene else 0
             total_scenes = obj.adventure.scenes.count()
-            return (current_scene_order / total_scenes) * 100
+            return round((current_scene_order / total_scenes) * 100, 2)
         return 0
