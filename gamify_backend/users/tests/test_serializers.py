@@ -79,6 +79,7 @@ class CharacterSerializerTest(TestCase):
         serializer = CharacterSerializer(self.character)
         self.assertEqual(serializer.data['name'], 'Gandalf')
         self.assertEqual(serializer.data['race']['name'], 'Elf')
+        self.assertEqual(serializer.data['current_xp'], 50)
 
     def test_read_only_fields_cannot_be_modified(self):
         update_data = {'name': 'Gandalf Le Blanc', 'slug': 'custom-slug'}

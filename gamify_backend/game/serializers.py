@@ -34,6 +34,7 @@ class CharacterSkillSerializer(serializers.ModelSerializer):
     class Meta:
         model = CharacterSkill
         fields = ['id', 'character', 'skill', 'acquired_at', 'acquired_level']
+        read_only_fields = ['id', 'character', 'acquired_at', 'acquired_level']
 
 
 class EquipmentSerializer(serializers.ModelSerializer):
@@ -58,7 +59,7 @@ class CharacterEquipmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CharacterEquipment
-        fields = ['id', 'character', 'equipment', 'equipment_details ', 'is_equipped', 'acquired_at', 'acquired_from']
+        fields = ['id', 'character', 'equipment', 'equipment_details', 'is_equipped', 'acquired_at', 'acquired_from']
 
 
 class EnemySerializer(serializers.ModelSerializer):

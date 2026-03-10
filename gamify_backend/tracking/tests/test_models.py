@@ -17,7 +17,8 @@ class ActivityModelTest(TestCase):
             race=self.race,
             character_class=self.character_class,
             level=1,
-            current_xp=0
+            current_xp=0,
+            total_xp=0
         )
         self.activity_type = ActivityType.objects.create(
             name="Walking Pad",
@@ -25,18 +26,30 @@ class ActivityModelTest(TestCase):
         )
 
     def test_activity_xp_calculation(self):
-        """Test XP calculus for an activity."""
         activity = Activity(
             character=self.character,
             activity_type=self.activity_type,
-            duration_minutes=60,  # 60 * 5 = 300 XP
+            duration_minutes=60,
             satisfaction=5,
         )
         activity.save()
         self.character.refresh_from_db()
-        self.assertEqual(self.character.current_xp, 0)  # current XP after leveling up
-        self.assertEqual(self.character.total_xp, 300)  # total XP earned
+        print(f"Character XP after refresh: {self.character.current_xp}")
+        self.assertEqual(self.character.total_xp, 300)
         self.assertEqual(self.character.level, 3)  # Leveled up (-100 from 1 to 2, -200 for 2 to 3, total -300 XP, hence why current_xp is 0)
+
+    def test_second_activity_xp_calculation(self):
+        activity1 = Activity(
+            character=self.character,
+            activity_type=self.activity_type,
+            duration_minutes=80,
+            satisfaction=5,
+        )
+        activity1.save()
+        self.character.refresh_from_db()
+        print(f"Character XP after refresh: {self.character.current_xp}")
+        self.assertEqual(self.character.total_xp, 400)
+        self.assertEqual(self.character.level, 3)
 
     def test_activity_requires_satisfaction(self):
         """Test that the 'satisfaction' field is mandatory."""

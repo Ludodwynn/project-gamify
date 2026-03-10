@@ -25,7 +25,7 @@ class AdventureSerializerTest(TestCase):
     def test_adventure_serializer(self):
         serializer = AdventureSerializer(self.adventure, context={'request': self.request})
         self.assertEqual(serializer.data['title'], "Test Adventure")
-        self.assertNotIn('is_published', serializer.data)
+        self.assertFalse(serializer.data['is_published'])
 
 class SceneSerializerTest(TestCase):
     def setUp(self):

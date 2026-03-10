@@ -20,3 +20,7 @@ db.sqlite3
 # OS
 .DS_Store
 Thumbs.db
+
+# utils
+codes_utilitaires_en_avance.md
+commandes_projet.md

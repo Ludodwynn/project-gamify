@@ -158,24 +158,52 @@ class Character(models.Model):
         """Multiply XP gain based on currend level"""
         return 1.0 + (self.level - 1) * 0.1
     
+    def add_xp(self, xp_gained):
+        """Add XP and verify the leveling up process."""
+        print(f"Adding {xp_gained} XP to character {self.name}")
+        self.current_xp += xp_gained
+        self.total_xp += xp_gained
+        print(f"Current XP: {self.current_xp}, Total XP: {self.total_xp}")
+        self._check_level_up()
+        self.save(update_fields=['current_xp', 'total_xp', 'level'])
+        print(f"AFTER SAVE: Current XP: {self.current_xp}, Level: {self.level}")
+
+    def _check_level_up(self):
+        """Verify and apply leveling up if necessary."""
+        while self.current_xp >= self.xp_for_next_level:
+            self.current_xp -= self.xp_for_next_level
+            self.level += 1
+    
     def toggle_active(self):
         self.is_active = not self.is_active
         self.save()
     
+    # def save(self, *args, **kwargs):
+    #     self.full_clean()
+
+    #     if self.pk:
+    #         old_char = Character.objects.get(pk=self.pk)
+    #         self.total_xp = old_char.total_xp + (self.current_xp - old_char.current_xp)
+    #     # else:
+    #     #     self.total_xp = self.current_xp
+
+    #     # while self.current_xp >= self.xp_for_next_level:
+    #     #     self.current_xp -= self.xp_for_next_level
+    #     #     self.level += 1
+
+    #     if self.pk:  # Si c'est une mise à jour
+    #         old_char = Character.objects.get(pk=self.pk)
+    #         if old_char.name != self.name:  # Si le nom a changé
+    #             self.slug = self._generate_unique_slug()
+    #     else:  # Nouvelle création
+    #         if not self.slug:
+    #             self.slug = self._generate_unique_slug()
+
+    #    super().save(*args, **kwargs)
+
     def save(self, *args, **kwargs):
         self.full_clean()
-
-        if self.pk:
-            old_char = Character.objects.get(pk=self.pk)
-            self.total_xp = old_char.total_xp + (self.current_xp - old_char.current_xp)
-        else:
-            self.total_xp = self.current_xp
-
         
-        while self.current_xp >= self.xp_for_next_level:
-            self.current_xp -= self.xp_for_next_level
-            self.level += 1
-
         if self.pk:  # Si c'est une mise à jour
             old_char = Character.objects.get(pk=self.pk)
             if old_char.name != self.name:  # Si le nom a changé
@@ -185,6 +213,19 @@ class Character(models.Model):
                 self.slug = self._generate_unique_slug()
 
         super().save(*args, **kwargs)
+
+    # def add_xp(self, xp_gained):
+    #     """Ajoute de l'XP et vérifie les montées de niveau."""
+    #     self.current_xp += xp_gained
+    #     self.total_xp += xp_gained
+    #     self.check_level_up()
+    #     self.save(update_fields=['current_xp', 'total_xp', 'level'])
+
+    # def check_level_up(self):
+    #     """Vérifie et applique les montées de niveau si nécessaire."""
+    #     while self.current_xp >= self.xp_for_next_level:
+    #         self.current_xp -= self.xp_for_next_level
+    #         self.level += 1
 
     def _generate_unique_slug(self):
         """Make a unique slug based on the character's name."""

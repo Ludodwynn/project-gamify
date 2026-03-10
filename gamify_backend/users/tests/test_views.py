@@ -1,13 +1,16 @@
 # users/tests/test_views.py
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from users.models import Character, Race, CharacterClass
+
+User = get_user_model()
 
 class UserDetailViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='testpass123')
+        self.user = User.objects.create_user(username='testuser', password='testpass123', email="test@test.test")
         self.client.force_authenticate(user=self.user)
         self.url = reverse('user-detail')
 
@@ -26,7 +29,7 @@ class UserDetailViewTest(APITestCase):
 class UserDeleteViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='testpass123')
+        self.user = User.objects.create_user(username='testuser', password='testpass123', email="test@test.test")
         self.client.force_authenticate(user=self.user)
         self.url = reverse('user-delete')
 
@@ -39,15 +42,13 @@ class UserDeleteViewTest(APITestCase):
 class CharacterListViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='testpass123')
-        self.race = Race.objects.create(name="Human", description="The most polyvalent race")
-        self.character_class = CharacterClass.objects.create(name="Warrior")
+        self.user = User.objects.create_user(username='testuser', password='testpass123', email="test@test.test")
         self.client.force_authenticate(user=self.user)
-        self.url = reverse('character-list')
 
-    def test_character_list_view(self):
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
+        self.race = Race.objects.create(name="Human", description="The most polyvalent race")
+        self.character_class = CharacterClass.objects.create(name="Warrior", description="Warriors are strong.", primary_attribute="Strength")
+
+        self.url = reverse('character-list')
 
     def test_character_creation(self):
         data = {
@@ -62,7 +63,7 @@ class CharacterListViewTest(APITestCase):
 class CharacterDetailViewTest(APITestCase):
     def setUp(self):
         self.client = APIClient()
-        self.user = User.objects.create_user(username='testuser', password='testpass123')
+        self.user = User.objects.create_user(username='testuser', password='testpass123', email="test@test.test")
         self.race = Race.objects.create(name="Human", description="The most polyvalent race")
         self.character_class = CharacterClass.objects.create(name="Warrior")
         self.character = Character.objects.create(

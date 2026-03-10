@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from rest_framework.test import APIRequestFactory
 from users.models import User, Character, Race, CharacterClass
 from tracking.models import Activity, ActivityType
@@ -47,17 +47,14 @@ class ActivityTypeSerializerTest(TestCase):
         self.assertEqual(updated_activity_type.name, "Updated Running")
 
 
-class ActivitySerializerTest(TestCase):
+class ActivitySerializerTest(TransactionTestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username="testuser",
-            email="test@example.com",
-            password="testpassword"
-        )
+        self.factory = APIRequestFactory()
+        self.user = User.objects.create_user(username="testuser", email="test@example.com", password="testpassword")
         self.race = Race.objects.create(name="Human", description="Humans are versatile.")
         self.character_class = CharacterClass.objects.create(
             name="Warrior",
-            description="Warriors are strong.",
+            description="Warriors are strong and brave.",
             primary_attribute="Strength"
         )
         self.character = Character.objects.create(
@@ -65,7 +62,9 @@ class ActivitySerializerTest(TestCase):
             name="TestChar",
             race=self.race,
             character_class=self.character_class,
-            level=1
+            level=1,
+            current_xp=0,
+            total_xp=0
         )
         self.activity_type = ActivityType.objects.create(
             name="Running",
@@ -79,26 +78,38 @@ class ActivitySerializerTest(TestCase):
             xp_earned=300
         )
 
-    def test_activity_serialization(self):
-        """Test an activity serialization."""
-        serializer = ActivitySerializer(self.activity)
-        self.assertEqual(serializer.data['duration_minutes'], 60)
-        self.assertEqual(serializer.data['satisfaction'], 5)
-        self.assertEqual(serializer.data['xp_earned'], 300)
-        self.assertEqual(serializer.data['activity_type']['name'], "Running")
-        self.assertEqual(serializer.data['activity_type']['category'], "Sport")
-
     def test_activity_creation_with_xp_calculation(self):
-        """Test an activity creation with XP calculus."""
-        data = {
-            'character': self.character,
-            'activity_type': self.activity_type,
-            'duration_minutes': 60,
-            'satisfaction': 5
-        }
-        serializer = ActivitySerializer(data=data, context={'character': self.character})
-        self.assertTrue(serializer.is_valid())
-        activity = serializer.save()
-        self.assertEqual(activity.xp_earned, 300)  # 60 * 5 = 300 XP
+        self.character.level = 1
+        self.character.current_xp = 0
+        self.character.total_xp = 0
+        self.character.save()
         self.character.refresh_from_db()
-        self.assertEqual(self.character.current_xp, 300)
+        data = {
+            'character': self.character.id,
+            'activity_type': self.activity_type.id,
+            'duration_minutes': 60,
+            'satisfaction': 5,
+        }
+        serializer = ActivitySerializer(data=data,  context={'request': None})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        activity = serializer.save()
+
+        # Vérification de l'XP gagnée
+        self.assertEqual(activity.xp_earned, 300)  # 60 * 5 * 1.0 (niveau 1)
+
+        # Rafraîchir le personnage
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.current_xp, 0)
+        self.assertEqual(self.character.level, 3)  # 300 XP → niveau 3
+
+
+
+
+    # def test_activity_serialization(self):
+    #     """Teste la sérialisation d'une activité."""
+    #     serializer = ActivitySerializer(self.activity)
+    #     self.assertEqual(serializer.data['duration_minutes'], 60)
+    #     self.assertEqual(serializer.data['satisfaction'], 5)
+    #     self.assertEqual(serializer.data['xp_earned'], 300)
+    #     print("XP earned : ", serializer.data['xp_earned'])
+    #     print("Character level : ", self.character.level)

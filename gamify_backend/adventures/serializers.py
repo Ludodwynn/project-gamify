@@ -112,6 +112,8 @@ class AdventureProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = AdventureProgress
         fields = ['id', 'character', 'adventure', 'current_scene', 'completed', 'xp_earned', 'started_at', 'completed_at', 'updated_at', 'duration', 'progress_percentage']
+        read_only_fields = ['id', 'character', 'started_at', 'completed_at', 'updated_at', 'duration', 'progress_percentage']
+        # fields = ['id', 'character', 'adventure', 'current_scene', 'completed', 'xp_earned', 'started_at', 'completed_at', 'updated_at', 'duration', 'progress_percentage']
 
     def get_duration(self, obj):
         if obj.completed_at and obj.started_at:
@@ -125,3 +127,9 @@ class AdventureProgressSerializer(serializers.ModelSerializer):
             total_scenes = obj.adventure.scenes.count()
             return round((current_scene_order / total_scenes) * 100, 2)
         return 0
+    
+class AdventureProgressCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdventureProgress
+        fields = ['id', 'character', 'adventure', 'current_scene', 'completed', 'xp_earned', 'started_at', 'completed_at', 'updated_at']
+        read_only_fields = ['id', 'character', 'started_at', 'completed_at', 'updated_at']

@@ -62,6 +62,17 @@ class CharacterClassSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'primary_attribute', 'created_at']
 
 
+class CharacterCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Character
+        fields = ['id', 'name', 'race', 'character_class', 'level', 'hp', 'mp', 'skill_points', 'current_xp', 'is_active']
+        read_only_fields = ['id']
+
+    def create(self, validated_data):
+        # Ne pas inclure 'user' dans validated_data car il est passé séparément dans perform_create
+        return Character.objects.create(**validated_data)
+
+
 class CharacterSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     slug = serializers.SlugField(read_only=True)

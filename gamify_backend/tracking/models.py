@@ -1,7 +1,9 @@
-from django.db import models
+from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.core.validators import MaxValueValidator
+
+from users.models import Character
 
 # from users.models import Character
 
@@ -67,15 +69,16 @@ class Activity(models.Model):
         return f"{self.character.name} - {self.activity_type.name} ({self.duration_minutes}min)"
 
     def calculate_xp(self):
-        """Calc XP based on the duration and the character's multiplier"""
+        """Calculate earned XP based on the activity's duration and the character's XP multiplier."""
         base_xp = self.duration_minutes * 5
+        print(f"Base XP: {base_xp}, Multiplier: {self.character.xp_multiplier}")
         return int(base_xp * self.character.xp_multiplier)
-    
+
     def save(self, *args, **kwargs):
-        if not self.pk:
-            self.xp_earned = self.calculate_xp()
-        super().save(*args, **kwargs)
-        
-        if not self.pk:
-            self.character.current_xp += self.xp_earned
-            self.character.save()
+        with transaction.atomic():
+            if not self.pk:  # New activity
+                self.xp_earned = self.calculate_xp()
+                print("IN SAVE - XP EARNED :", self.xp_earned)
+            super().save(*args, **kwargs)
+            if not self.pk:  # After the initial save
+                self.character.add_xp(self.xp_earned)
